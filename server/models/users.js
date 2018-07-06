@@ -16,17 +16,11 @@ var UserSchema = mongoose.Schema({
     required: true,
     minlength: 6
   },
-  name: [{
-    fname: {type: String,
+  name: {
+    type: String,
     required: true,
-    minlength: 2,
+    minlength: 2
   },
-    lname: {
-      type: String,
-      required: true,
-      minlength: 2,
-    }
-  }],
   tokens: [{
     access: {
       type: String,
