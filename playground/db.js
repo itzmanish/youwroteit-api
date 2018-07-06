@@ -1,6 +1,6 @@
 const {MongoClient, ObjectID} = require('mongodb');
-const mongoose = require("mongoose");
-mongoose.connect('mongodb://rudra:Rudra108@ds121461.mlab.com:21461/youwroteit', (err, client) => {
+
+MongoClient.connect('mongodb://localhost:27017', (err, client) => {
   if(err) {
    return console.log('Error on connecting mongodb');
  }

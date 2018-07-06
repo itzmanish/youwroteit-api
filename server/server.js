@@ -1,86 +1,100 @@
 const express = require('express');
-const server = require("server");
+const _ = require('lodash');
+const app = express();
 const BodyParser = require('body-parser');
-const path = require("path");
-const methodOverride = require('method-override');
-
-
-const PORT = 3000;
-// passport things
-const passport = require("passport");
-const LocalStrategy = require('passport-local');
-const TwitterStrategy = require('passport-twitter');
-const GoogleStrategy = require('passport-google');
-const FacebookStrategy = require('passport-facebook');
-// tokens and session init
-const jwt = require('jsonwebtoken');
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-// logger init
-const morgan = require('morgan');
-
 const {ObjectID} = require('mongodb');
 
 const {mongoose} = require('./db/mongoose');
-// main function starts from here
-
-const app = express();
-
-// using moment for post time
-// use this on template for date time as $moment{(post.date).format("DD-MM-YYYY")}
-app.locals.moment = require("moment");
+const {Users} = require('./models/users');
+const {Posts} = require('./models/posts');
 
 app.use(BodyParser.json());
-app.use(BodyParser.urlencoded({extended: false}));
-app.use(methodOverride('X-HTTP-Method-Override'));
 
-
-app.use(express.static(path.join(__dirname, 'public')));
-// logging in console
-app.use(morgan('dev'));
-
-// Routing setup
-const routes = require("./routes/indexRouter");
-app.use('/', routes);
-
-
-// Cookie and session
-app.use(cookieParser());
-app.use(session({
-  secret: 'itissecret',
-  resave: true,
-  saveUninitialized: true
-}));
-
-// Passport 
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Session-persisted message middleware
-app.use((req, res, next) => {
-  var err = req.session.error,
-      msg = req.session.notice,
-      success = req.session.success;
-  res.locals.loggedIn = false;
-
-  delete req.session.error;
-  delete req.session.success;
-  delete req.session.notice;
-
-  if(req.session.passport && typeof req.session.passport.user != 'undefined') res.locals.loggedIn = true;
-
-  if (err) res.locals.error = err;
-  if (msg) res.locals.notice = msg;
-  if (success) res.locals.success = success;
-
-  next();
+// posts post req
+app.post('/posts', (req,res) => {
+  var post = new Posts({
+    title: req.body.title,
+    content: req.body.content
+  });
+  post.save().then((doc) => {
+    res.send(doc);
+  }, (e) => {
+    res.status(404).send(e);
+  });
 });
 
-
-app.listen(PORT, () => {
-  console.log('Server listning on http://localhost:'+ PORT);
+// posts get req
+app.get('/posts', (req,res) => {
+  Posts.find().then((posts) => {
+    res.send({posts});
+  }, (e) =>{
+    res.status(400).send(e);
+  });
 });
 
+// posts find by id
+app.get('/posts/:id', (req, res) => {
+  var id = req.params.id
+  console.log(id);
+  if(!ObjectID.isValid(id)) {
+    return res.status(404).send();
+  }
 
+  Posts.findById(id).then((post) => {
+    if (!post) {
+      res.status(404).send();
+    }
+    res.send({post});
+  }).catch((e) => {
+    res.status(404).send();
+  });
+});
 
-// extend https://www.ctl.io/developers/blog/post/build-user-authentication-with-node-js-express-passport-and-mongodb
+// Delete Posts
+app.delete('/posts/:id', (req, res) => {
+  var id = req.params.id
+
+  if(!ObjectID.isValid(id)) {
+    res.status(404).send();
+  }
+  Posts.findByIdAndRemove(id).then((post) => {
+    if(!post) {
+      res.status(404).send();
+    }
+    res.send({post});
+  }).catch((e) => {
+    res.status(404).send();
+  });
+});
+
+// Update posts
+app.patch('/posts/:id', (req, res) => {
+  var id = req.params.id;
+  var body = _.pick(req.body, ['title', 'slug', 'content']);
+  if(ObjectID.isValid(id)) {
+    res.status(404).send();
+  }
+  Posts.findByIdAndUpdate(id, {$set: body}, {new: true}).then((post) => {
+    if(!post){
+      res.status(404).send();
+    }
+    res.send({post});
+  }).catch((e) => {
+    res.status(404).send();
+  });
+});
+
+// post users
+app.post('/users', (req, res) => {
+  var body = _.pick(req.body, ['fname', 'lname', 'email', 'password']);
+  var user = new Users(body);
+  user.save().then((user) => {
+    res.send(user);
+  }).catch((e) => {
+    res.status(404).send();
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server started at http://localhost:3000');
+});
