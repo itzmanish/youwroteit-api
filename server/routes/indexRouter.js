@@ -6,6 +6,7 @@ const multer = require("multer");
 const upload = multer({dest: 'public/uploads/'})
 const {Posts} = require('./../models/posts');
 const {Users} = require('./../models/users');
+const {authenticate} = require("./../middleware/auth/authenticate");
 const _ = require('lodash');
 
 // passport things
@@ -143,12 +144,11 @@ router.patch('/posts/:id', (req, res) => {
 
 
 // post users
-router.post('/users', (req, res) => {
+router.post('/signup', (req, res) => {
   var body = _.pick(req.body, ['name', 'email', 'password']);
   var user = new Users(body);
   user.save().then((user) => {
     return user.generateAuthToken();
-    // res.send(user);
   }).then((token) => {
     res.header('x-auth', token).send(user);
   }).catch((e) => {
@@ -157,7 +157,10 @@ router.post('/users', (req, res) => {
 });
 // disabled front end for some time
 // Perform the login
-
+// get users
+router.get('/users/me', authenticate, (req, res) => {
+  res.send(req.user);
+});
 
 
 module.exports = router;
