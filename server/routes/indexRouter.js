@@ -1,31 +1,33 @@
 const express = require("express");
+const { check, validationResult } = require('express-validator/check');
 const router = express.Router();
 const {ObjectID} = require('mongodb');
 const multer = require("multer");
-const upload = multer({dest: '/public/uploads/'})
+const upload = multer({dest: 'public/uploads/'})
 const {Posts} = require('./../models/posts');
 const {Users} = require('./../models/users');
 const _ = require('lodash');
+
 // passport things
-import passport from 'passport';
+const passport = require("passport");
 
 // ckeditor initialization
-const ClassicEditor = require( '@ckeditor/ckeditor5-build-classic' );
-ClassicEditor
-        .create( document.querySelector( '#content' ) )
-        .then( editor => {
-                window.editor = editor;
-        } )
-        .catch( err => {
-                console.error( err.stack );
-        } );
+// const ClassicEditor = require( '@ckeditor/ckeditor5-build-classic' );
+// ClassicEditor
+//         .create( document.querySelector( '#content' ) )
+//         .then( editor => {
+//                 window.editor = editor;
+//         } )
+//         .catch( err => {
+//                 console.error( err.stack );
+//         } );
 
 
-const env = {
-  AUTH0_CLIENT_ID: 'c1qEH2U7ZcAkwW_3c_ETSW7pATHesO-m',
-  AUTH0_DOMAIN: 'genisys.auth0.com',
-  AUTH0_CALLBACK_URL: 'http://localhost:3000/callback'
-};
+// const env = {
+//   AUTH0_CLIENT_ID: 'c1qEH2U7ZcAkwW_3c_ETSW7pATHesO-m',
+//   AUTH0_DOMAIN: 'genisys.auth0.com',
+//   AUTH0_CALLBACK_URL: 'http://localhost:3000/callback'
+// };
 
 
 // index req
@@ -35,41 +37,32 @@ router.post('/', (req, res)=> {
 
 
 // posts post req
-router.post('/posts', upload.single('avatar'), (req,res) => {
-  var post = new Posts({
+router.post('/posts', (req,res) => {
+  
+// form validation
+  check('title').not().isEmpty().isLength({ min: 1 }).trim().withMessage('Title empty.');
+  check('content').not().isEmpty().withMessage('Content is required').isLength({min: 10}).withMessage('Content should be greater than 20 words');
+  
+  
+  //check errror
+ const errors = validationResult(req);
+ 
+  if (!errors.isEmpty()) {
+    res.send(JSON.Stringify(errors));
+  } else {
+    var post = new Posts({
     title: req.body.title,
     content: req.body.content,
     slug: req.body.title.replace(/\s+/g, '-').toLowerCase(),
     postTime: new Date()
   });
-  if (req.file) {
-    var avatar = req.file.filename;
-  } else {
-    var avatar = 'default.jpg';
-  }
-  
-  // form validation
-  req.checkBody('title', 'title field is requied').notEmpty();
-  req.checkBody('content', 'Content is required').notEmpty();
-  
-  //check errror
-  var errors = req.validationErrors();
-  
-  if (errors) {
-    res.render('/posts', {
-      'errors': errors
-    })
-  } else {
     post.save().then((doc) => {
-    req.flash('success', 'Post added');
+    // req.flash('messages', 'Post added');
     res.send(doc);
-    res.location('/');
-    res.redirect('/');
   }, (e) => {
     res.status(404).send(e);
   });
-  }
-});
+}});
 
 // posts get req
 router.get('/posts', (req,res) => {
@@ -151,10 +144,13 @@ router.patch('/posts/:id', (req, res) => {
 
 // post users
 router.post('/users', (req, res) => {
-  var body = _.pick(req.body, ['fname', 'lname', 'email', 'password']);
+  var body = _.pick(req.body, ['name', 'email', 'password']);
   var user = new Users(body);
   user.save().then((user) => {
-    res.send(user);
+    return user.generateAuthToken();
+    // res.send(user);
+  }).then((token) => {
+    res.header('x-auth', token).send(user);
   }).catch((e) => {
     res.status(404).send();
   });

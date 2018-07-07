@@ -3,6 +3,7 @@ const server = require("server");
 const BodyParser = require('body-parser');
 const path = require("path");
 const methodOverride = require('method-override');
+const flash = require("connect-flash");
 
 
 const PORT = 3000;
@@ -35,6 +36,7 @@ app.use(BodyParser.urlencoded({extended: false}));
 app.use(methodOverride('X-HTTP-Method-Override'));
 
 
+
 app.use(express.static(path.join(__dirname, 'public')));
 // logging in console
 app.use(morgan('dev'));
@@ -52,29 +54,37 @@ app.use(session({
   saveUninitialized: true
 }));
 
+// flash messeges
+app.use(require('connect-flash')());
+app.use(function (req, res, next) {
+  res.locals.messages = require('express-messages')(req, res);
+  next();
+});
+
+
 // Passport 
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Session-persisted message middleware
-app.use((req, res, next) => {
-  var err = req.session.error,
-      msg = req.session.notice,
-      success = req.session.success;
-  res.locals.loggedIn = false;
+// app.use((req, res, next) => {
+//   var err = req.session.error,
+//       msg = req.session.notice,
+//       success = req.session.success;
+//       res.locals.loggedIn = false;
 
-  delete req.session.error;
-  delete req.session.success;
-  delete req.session.notice;
+//   delete req.session.error;
+//   delete req.session.success;
+//   delete req.session.notice;
 
-  if(req.session.passport && typeof req.session.passport.user != 'undefined') res.locals.loggedIn = true;
+//   if(req.session.passport && typeof req.session.passport.user != 'undefined') res.locals.loggedIn = true;
 
-  if (err) res.locals.error = err;
-  if (msg) res.locals.notice = msg;
-  if (success) res.locals.success = success;
+//   if (err) res.locals.error = err;
+//   if (msg) res.locals.notice = msg;
+//   if (success) res.locals.success = success;
 
-  next();
-});
+//   next();
+// });
 
 
 app.listen(PORT, () => {
