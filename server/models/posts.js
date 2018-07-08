@@ -17,6 +17,10 @@ var Posts = mongoose.model('Posts', {
   postTime: {
     type: Number,
     default: null
+  },
+  _creator: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true
   }
 });
 

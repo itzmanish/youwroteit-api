@@ -4,7 +4,7 @@ const BodyParser = require('body-parser');
 const path = require("path");
 const methodOverride = require('method-override');
 const flash = require("connect-flash");
-
+const hbs = require("express-handlebars");
 
 const PORT = 3000;
 // passport things
@@ -27,6 +27,8 @@ const {mongoose} = require('./db/mongoose');
 
 const app = express();
 
+app.use(express.static(path.join(__dirname, '/public/')));
+
 // using moment for post time
 // use this on template for date time as $moment{(post.date).format("DD-MM-YYYY")}
 app.locals.moment = require("moment");
@@ -35,9 +37,16 @@ app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({extended: false}));
 app.use(methodOverride('X-HTTP-Method-Override'));
 
+// Setup views
+app.engine('.handlebars', hbs({
+    extname: '.handlebars',
+    defaultLayout: 'main',
+    partialsDir: path.join(__dirname, 'views/partials'),
+    layoutsDir: path.join(__dirname, 'views/layouts')
+  }));
+app.set('view engine', '.handlebars');
+app.set('views',path.join(__dirname,'views'))
 
-
-app.use(express.static(path.join(__dirname, 'public')));
 // logging in console
 app.use(morgan('dev'));
 

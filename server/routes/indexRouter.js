@@ -32,13 +32,18 @@ const passport = require("passport");
 
 
 // index req
-router.post('/', (req, res)=> {
-  res.send('homepage');
+router.get('/', (req, res)=> {
+  res.render('home/index', {
+    title: "Home",
+    helpers: {
+            currentYear: function () { return new Date().getFullYear(); }
+        }
+  });
 });
 
 
 // posts post req
-router.post('/posts', (req,res) => {
+router.post('/posts', authenticate, (req,res) => {
   
 // form validation
   check('title').not().isEmpty().isLength({ min: 1 }).trim().withMessage('Title empty.');
@@ -51,11 +56,13 @@ router.post('/posts', (req,res) => {
   if (!errors.isEmpty()) {
     res.send(JSON.Stringify(errors));
   } else {
+    console.log(req.user);
     var post = new Posts({
     title: req.body.title,
     content: req.body.content,
     slug: req.body.title.replace(/\s+/g, '-').toLowerCase(),
-    postTime: new Date()
+    postTime: new Date(),
+    _creator: req.user._id
   });
     post.save().then((doc) => {
     // req.flash('messages', 'Post added');
@@ -66,8 +73,8 @@ router.post('/posts', (req,res) => {
 }});
 
 // posts get req
-router.get('/posts', (req,res) => {
-  Posts.find().then((posts) => {
+router.get('/posts', authenticate, (req,res) => {
+  Posts.find({_creator: req.user._id}).then((posts) => {
     res.send({posts});
   }, (e) =>{
     res.status(400).send(e);
@@ -91,14 +98,14 @@ router.get('/posts', (req,res) => {
 
 
 // posts find by id
-router.get('/posts/:id', (req, res) => {
+router.get('/posts/:id', authenticate, (req, res) => {
   var id = req.params.id;
   console.log(id);
   if(!ObjectID.isValid(id)) {
     return res.status(404).send();
   }
 
-  Posts.findById(id).then((post) => {
+  Posts.findOne({_id: id, _creator: req.user._id}).then((post) => {
     if (!post) {
       res.status(404).send();
     }
@@ -115,7 +122,7 @@ router.delete('/posts/:id', (req, res) => {
   if(!ObjectID.isValid(id)) {
     res.status(404).send();
   }
-  Posts.findByIdAndRemove(id).then((post) => {
+  Posts.findOneAndRemove({_id: id, _creator: req.user._id}).then((post) => {
     if(!post) {
       res.status(404).send();
     }
@@ -132,7 +139,7 @@ router.patch('/posts/:id', (req, res) => {
   if(ObjectID.isValid(id)) {
     res.status(404).send();
   }
-  Posts.findByIdAndUpdate(id, {$set: body}, {new: true}).then((post) => {
+  Posts.findOneAndUpdate({_id: id, _creator: req.user._id}, {$set: body}, {new: true}).then((post) => {
     if(!post){
       res.status(404).send();
     }
@@ -146,12 +153,17 @@ router.patch('/posts/:id', (req, res) => {
 // post users
 router.post('/signup', (req, res) => {
   var body = _.pick(req.body, ['name', 'email', 'password']);
-  var user = new Users(body);
+  var user = new Users({
+    email: body.email.toLowerCase(),
+    name: body.name,
+    password: body.password
+  });
   user.save().then((user) => {
     return user.generateAuthToken();
   }).then((token) => {
     res.header('x-auth', token).send(user);
   }).catch((e) => {
+    console.log(e);
     res.status(404).send();
   });
 });
@@ -162,5 +174,32 @@ router.get('/users/me', authenticate, (req, res) => {
   res.send(req.user);
 });
 
+router.get('/users', (req,res) => {
+  Users.find().then((user) => {
+    res.send({user});
+  }, (e) =>{
+    res.status(400).send(e);
+  });
+});
+
+
+router.post('/login', (req, res) => {
+  var body = _.pick(req.body, ['email', 'password']);
+  Users.findByCredentials(body.email, body.password).then((user) => {
+    return user.generateAuthToken().then((token) => {
+      res.header('x-auth', token).send(user);
+    });
+  }).catch((e) => {
+    res.status(400).send();
+  });
+});
+
+router.delete('/users/me/token', authenticate, (req,res) => {
+  req.user.removeToken(req.token).then(() => {
+    res.status(200).send();
+  }).catch((e) =>{
+    res.status(400).send();
+  })
+});
 
 module.exports = router;

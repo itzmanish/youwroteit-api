@@ -48,9 +48,20 @@ UserSchema.methods.generateAuthToken = function () {
   var access = 'auth';
   var token = jwt.sign({_id: user._id.toHexString(), access}, 'iskenichebamhai').toString();
   
-  user.tokens.push({access, token});
+  user.tokens.push({access:access, token:token});
+  console.log(user.tokens);
   return user.save().then(() => {
     return token;
+  });
+};
+
+UserSchema.methods.removeToken = function(token) {
+  var user = this;
+  
+  return user.update({
+    $pull: {
+      tokens: {token}
+    }
   });
 };
 
@@ -69,20 +80,42 @@ UserSchema.statics.findByToken = function (token) {
     'tokens.token': token,
     'tokens.access': 'auth'
   });
+};
+
+UserSchema.statics.findByCredentials = function (email, password) {
+  var User = this;
+  return User.findOne({email}).then((user) => {
+    console.log(user);
+    if(!user) {
+     return Promise.reject(); 
+    }
+    return new Promise((resolve, reject) => {
+         bcrypt.compare(password, user.password, (err, res) => {
+           console.log(res);
+           console.log(err);
+           if(res) {
+             resolve(user);
+           }
+             reject();
+         });
+    });
+  });
   
 };
 
 UserSchema.pre('save', function(next) {
   var user = this;
   console.log(user.isModified('password'));
-  if(!user.isModified('password')) return  next();
-  
-
-      bcrypt.hash(user.password, 10, function(err, hash) {
+  if(user.isModified('password')) { 
+     bcrypt.genSalt(10, function(err, salt) {
+      bcrypt.hash(user.password, salt, function(err, hash) {
         user.password = hash;
         next();
       });
-
+    });
+  } else {
+    next();
+  }
 });
 var Users = mongoose.model('Users', UserSchema);
 
