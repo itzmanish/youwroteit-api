@@ -1,0 +1,57 @@
+<h1  style="padding-left: 100px;padding-top: 50px;text-align: center;">ALL POSTS</h1>
+
+
+<table class="table table-bordered mx-auto mt-5" style="
+    padding-top: 50px;
+    padding-left: 200px;
+    padding-right: 100px;
+    padding-bottom: 50px;
+    width: 1050px;
+    ">
+
+    <thead>
+        <tr>
+
+            <th>Id</th>
+            <th>Title</th>
+            <th>Content</th>
+            <th></th>
+            <th>Date</th>
+            <th></th>
+            <th></th>
+
+        </tr>
+    </thead>
+
+    <tbody>
+
+        {{#each posts}}
+
+        <tr>
+
+            <td>{{_id}}</td>
+            <td>{{title}}</td>
+            <td>{{content}}</td>
+            <td><a href="/admin/posts/{{id}}">View</a></td>
+            <td>$moment{(posts.postTime).format("DD-MM-YYYY")}</td>
+            <td><a href="/admin/posts/edit/{{id}}" class="btn btn-info">Edit</a></td>
+            <td>
+
+                <form action="/admin/posts/{{id}}?_method=DELETE" method="POST">
+
+                    <button type="submit" class="btn btn-danger">DELETE</button>
+                </form>
+
+
+
+            </td>
+
+        </tr>
+
+
+        {{/each}}
+    </tbody>
+
+
+
+</table>

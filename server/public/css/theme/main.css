@@ -841,8 +841,9 @@ h6 {
 .genric-btn {
     display: inline-block;
     outline: none;
+    margin: auto;
     line-height: 40px;
-    padding: 0 30px;
+    padding: 0 40px;
     font-size: .8em;
     text-align: center;
     text-decoration: none;
@@ -1320,12 +1321,15 @@ h6 {
 
 .single-input-accent {
     display: block;
-    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    width: 30%;
     line-height: 40px;
     border: 1px solid transparent;
     outline: none;
     background: #f9f9ff;
-    padding: 0 20px
+    padding: 0 40px;
+    text-align: center;
 }
 
 .single-input-accent:focus {
@@ -1944,7 +1948,7 @@ body {
 }
 
 i {
-    color: #222
+    color: #69B4FD
 }
 
 .section-gap {
@@ -2611,8 +2615,7 @@ i {
 
 .footer-area {
     padding-top: 100px;
-    background-color: #222222
-}
+    }
 
 .footer-area .footer-nav li {
     margin-top: 8px
@@ -2652,7 +2655,7 @@ h6 {
 }
 
 .footer-social {
-    text-align: right
+    text-align: center
 }
 
 .footer-social a {

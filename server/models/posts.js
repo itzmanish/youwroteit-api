@@ -1,18 +1,20 @@
 const mongoose = require('mongoose');
-
-var Posts = mongoose.model('Posts', {
+const URLSlugs = require("mongoose-url-slugs");
+const PostSchema = mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
   },
   slug: {
     type: String,
-    default: null
   },
   content: {
     type: String,
     required: true
+  },
+  status: {
+    type: String,
+    default: 'public'
   },
   postTime: {
     type: Number,
@@ -23,5 +25,10 @@ var Posts = mongoose.model('Posts', {
     required: true
   }
 });
+
+var Posts = mongoose.model('Posts', PostSchema);
+
+
+PostSchema.plugin(URLSlugs('title', {field: 'slug'}));
 
 module.exports = {Posts};
