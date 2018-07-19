@@ -13,20 +13,13 @@ const app = express();
 // tokens and session init
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-
 //  Using anti csrf tokens
 // const csrf = require("csurf");
-// app.use(csrf());
-
+// var csrfProtection = csrf({ cookie: true });
 
 // logger init
 const morgan = require('morgan');
-
-const { ObjectID } = require('mongodb');
-
 const { mongoose } = require('./db/mongoose');
-// main function starts from here
-
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -37,11 +30,12 @@ app.locals.moment = require("moment");
 app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({ extended: false }));
 app.use(methodOverride('X-HTTP-Method-Override'));
-
+const {select, currentTime} = require("./helpers/handlebars-helpers");
 // Setup views
 app.engine('.handlebars', hbs({
 	extname: '.handlebars',
 	defaultLayout: 'main',
+	helpers: {select, currentTime},
 	partialsDir: path.join(__dirname, 'views/partials'),
 	layoutsDir: path.join(__dirname, 'views/layouts')
 }));
@@ -51,14 +45,19 @@ app.set('views', path.join(__dirname, 'views'));
 // logging in console
 app.use(morgan('dev'));
 
-
+// use helmet for all http-vulnerability
+var helmet = require('helmet');
+app.use(helmet());
+// 
 // Cookie and session
 app.use(cookieParser());
 app.use(session({
-	secret: 'itissecret',
+	secret: 'iskenichebamhai',
 	resave: true,
 	saveUninitialized: true,
-	expires: 1800000
+	expires: 1800000,
+	secure: true,
+	cookie: {  httpOnly: true  }
 }));
 
 // flash messeges
@@ -89,8 +88,6 @@ app.use((req, res, next) => {
 });
 
 
-
-
 // Load Routes
 const homeRoutes = require("./routes/indexRouter");
 const adminRoutes = require("./routes/adminRouter");
@@ -104,7 +101,6 @@ app.use('/', homeRoutes);
 //   res.locals.csrfToken = req.csrfToken();
 //   next();
 // });
-
 
 
 app.listen(PORT, () => {

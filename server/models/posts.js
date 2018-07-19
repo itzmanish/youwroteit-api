@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
-const URLSlugs = require("mongoose-url-slugs");
+const timestamps = require("mongoose-timestamp");
 const PostSchema = mongoose.Schema({
   title: {
     type: String,
+    trim: true,
     required: true,
   },
   slug: {
     type: String,
+    trim: true
   },
   content: {
     type: String,
@@ -16,19 +18,18 @@ const PostSchema = mongoose.Schema({
     type: String,
     default: 'public'
   },
-  postTime: {
-    type: Number,
-    default: null
+  _creatorID: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true
   },
   _creator: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     required: true
   }
 });
 
+PostSchema.plugin(timestamps);
+
 var Posts = mongoose.model('Posts', PostSchema);
-
-
-PostSchema.plugin(URLSlugs('title', {field: 'slug'}));
 
 module.exports = {Posts};

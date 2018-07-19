@@ -35,11 +35,8 @@ router.all('/*', (req, res, next) => {
 router.get('/', (req, res)=> {
   Posts.findOne().then((posts) => {
     res.render('home/index', {
-    postTitle: posts.title,
-    title: "YouWroteIt- A blogging platform for geeky people..",
-    helpers: {
-            currentYear: function () { return new Date().getFullYear(); }
-        }
+    post: posts,
+    title: "YouWroteIt- A blogging platform for geeky people.."
   });
   });
 

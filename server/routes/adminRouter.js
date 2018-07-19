@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require('express-validator/check');
-
+const slugify = require("slugify");
 const { ObjectID } = require('mongodb');
 const { Users } = require('./../models/users');
-const {Posts} = require('./../models/posts');
+const { Posts } = require('./../models/posts');
 const { userAuthenticated } = require("./../middleware/auth/authenticate");
 const _ = require('lodash');
 const passport = require("passport");
@@ -20,13 +20,13 @@ router.all('/*', (req, res, next) => {
 
 
 router.get('/', userAuthenticated, (req, res) => {
-  res.render('admin/index', {user: req.user.firstname, title: 'Youwroteit-Admin panel'});
+  res.render('admin/index', { user: req.user.firstname, title: 'Youwroteit-Admin panel' });
 });
 
 
 // get signup
 router.get('/signup', (req, res) => {
-  res.render('layouts/signup', {layout: 'signup.handlebars'});
+  res.render('layouts/signup', { layout: 'signup.handlebars' });
 });
 // post users
 router.post('/signup', (req, res) => {
@@ -63,20 +63,20 @@ router.get('/login', (req, res) => {
   if (req.user) {
     res.redirect('/admin');
   }
-  res.render('layouts/login', {layout: 'login.handlebars'});
+  res.render('layouts/login', { layout: 'login.handlebars' });
 });
 
 // POST login
-router.post('/login', (req, res, next)=>{
+router.post('/login', (req, res, next) => {
 
 
-    passport.authenticate('local', {
+  passport.authenticate('local', {
 
-        successRedirect: '/admin',
-        failureRedirect: '/admin/login',
-        failureFlash: true
+    successRedirect: '/admin',
+    failureRedirect: '/admin/login',
+    failureFlash: true
 
-    })(req, res, next);
+  })(req, res, next);
 });
 
 
@@ -113,10 +113,10 @@ router.delete('/users/me/token', (req, res) => {
 //   }
 // });
 
-router.get('/logout', userAuthenticated, (req, res)=>{
+router.get('/logout', userAuthenticated, (req, res) => {
 
-    req.logOut();
-    res.redirect('/admin/login');
+  req.logOut();
+  res.redirect('/admin/login');
 
 });
 
@@ -127,41 +127,55 @@ router.get('/posts/create', userAuthenticated, (req, res) => {
 
 // posts post req
 router.post('/posts/create', (req, res) => {
-  
-    var body = _.pick(req.body, ['title', 'status', 'content']);
-  console.log(req.body);
-// form validation
-  check('title').not().isEmpty().isLength({ min: 1 }).trim().withMessage('Title empty.');
-  check('content').not().isEmpty().withMessage('Content is required').isLength({min: 10}).withMessage('Content should be greater than 20 words');
-  
-  
+  var userId = req.user.id;
+  var body = _.pick(req.body, ['title', 'status', 'content']);
+  // form validation
+  check('body.title').not().isEmpty().isLength({ min: 1 }).trim().withMessage('Title empty.');
+  check('body.content').not().isEmpty().withMessage('Content is required').isLength({ min: 10 }).withMessage('Content should be greater than 20 words');
+
+
   //check errror
- const errors = validationResult(req);
- 
+  const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
     res.send(JSON.Stringify(errors));
-  } else {
+  }
+  else {
     var post = new Posts({
-    title: body.title,
-    content: body.content,
-    status: body.status,
-    postTime: new Date(),
-    _creator: req.user.id
-  });
-  console.log(body.title, body.content);
-    post.save().then((doc) => {
-    req.flash('success_message', 'Post added');
-    res.redirect('/admin/posts');
-  }, (e) => {
-    res.status(404).send(e);
-  });
-}});
+      title: body.title.trim(),
+      content: body.content,
+      status: body.status,
+      _creatorID: req.user.id
+    });
+    Users.findOne({_id: userId}).then((userID) => {
+      console.log(userID);
+      post._creator = userID.firstname + " " + userID.lastname;
+    });
+    post.slug = slugify(body.title);
+    Posts.findOne({ title: body.title }).then((some) => {
+      if (some) {
+        req.flash('error_message', 'Title already exist');
+        res.redirect('/admin/posts/create');
+      }
+      else {
+        post.save().then((doc) => {
+          console.log(doc);
+          req.flash('success_message', 'Post added');
+          res.redirect('/admin/posts');
+        }, (e) => {
+          res.status(404).send(e);
+        });
+      }
+    });
+
+  }
+});
 
 // posts get req
-router.get('/posts', userAuthenticated, (req,res) => {
-  Posts.find({_creator: req.user.id}).then((posts) => {
-    res.render('admin/list_posts', {posts});
-  }, (e) =>{
+router.get('/posts', userAuthenticated, (req, res) => {
+  Posts.find({ _creatorID: req.user.id }).then((posts) => {
+    res.render('admin/list_posts', { posts });
+  }, (e) => {
     res.status(400).send(e);
   });
 });
@@ -171,49 +185,60 @@ router.get('/posts', userAuthenticated, (req,res) => {
 router.get('/posts/:id', userAuthenticated, (req, res) => {
   var id = req.params.id;
   console.log(id);
-  if(!ObjectID.isValid(id)) {
+  if (!ObjectID.isValid(id)) {
     return res.status(404).send();
   }
 
-  Posts.findOne({_id: id, _creator: req.user.id}).then((post) => {
+  Posts.findOne({ _id: id, _creatorID: req.user.id }).then((post) => {
     if (!post) {
       res.status(404).send();
     }
-    res.send({post});
+    res.send({ post });
   }).catch((e) => {
     res.status(404).send();
   });
 });
 
 // Delete Posts
-router.delete('/posts/:id', userAuthenticated, (req, res) => {
+router.post('/posts/delete/:id', userAuthenticated, (req, res) => {
   var id = req.params.id;
 
-  if(!ObjectID.isValid(id)) {
+  if (!ObjectID.isValid(id)) {
     res.status(404).send();
   }
-  Posts.findOneAndRemove({_id: id, _creator: req.user.id}).then((post) => {
-    if(!post) {
+  Posts.findOneAndRemove({ _id: id, _creatorID: req.user.id }).then((post) => {
+    if (!post) {
       res.status(404).send();
     }
-    res.send({post});
+    req.flash('success_message', 'successfully deleted post');
+    res.redirect('/admin/posts');
   }).catch((e) => {
     res.status(404).send();
   });
 });
 
 // Update posts
-router.patch('/posts/edit/:id', userAuthenticated, (req, res) => {
+// GET post/edit
+router.get('/posts/edit/:id', userAuthenticated, (req, res) => {
+  Posts.findOne({ _id: req.params.id, _creatorID: req.user.id }).then((post) => {
+    res.render('admin/edit_post', { post });
+  });
+});
+// POST post/edit
+router.post('/posts/edit/:id', userAuthenticated, (req, res) => {
   var id = req.params.id;
-  var body = _.pick(req.body, ['title', 'slug', 'content']);
-  if(ObjectID.isValid(id)) {
+  var body = _.pick(req.body, ['title', 'status', 'slug', 'content']);
+  body.title = body.title.trim();
+  body.slug = slugify(body.title);
+  if (ObjectID.isValid(id)) {
     res.status(404).send();
   }
-  Posts.findOneAndUpdate({_id: id, _creator: req.user.id}, {$set: body}, {new: true}).then((post) => {
-    if(!post){
+  Posts.findOneAndUpdate({ _id: id, _creatorID: req.user.id }, { $set: body }, { new: true }).then((post) => {
+    if (!post) {
       res.status(404).send();
     }
-    res.send({post});
+    req.flash('success_message', 'successfully updated post');
+    res.redirect('/admin/posts');
   }).catch((e) => {
     res.status(404).send();
   });

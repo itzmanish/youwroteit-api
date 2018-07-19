@@ -33,11 +33,11 @@
             <td>{{title}}</td>
             <td>{{content}}</td>
             <td><a href="/admin/posts/{{id}}">View</a></td>
-            <td>$moment{(posts.postTime).format("DD-MM-YYYY")}</td>
+            <td>{{currentTime posts.postTime "DD-MM-YYYY"}} </td>
             <td><a href="/admin/posts/edit/{{id}}" class="btn btn-info">Edit</a></td>
             <td>
 
-                <form action="/admin/posts/{{id}}?_method=DELETE" method="POST">
+                <form action="/admin/posts/delete/{{id}}" method="POST">
 
                     <button type="submit" class="btn btn-danger">DELETE</button>
                 </form>
