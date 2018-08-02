@@ -23,10 +23,8 @@ router.get('/', userAuthenticated, (req, res) => {
   res.render('admin/index', { user: req.user.firstname, title: 'Youwroteit-Admin panel' });
 });
 
-
-// get signup
-router.get('/signup', (req, res) => {
-  res.render('layouts/signup', { layout: 'signup.handlebars' });
+router.get('/login', (req, res) => {
+  res.render('layouts/login', {layout: 'login'});
 });
 // post users
 router.post('/signup', (req, res) => {
@@ -38,11 +36,9 @@ router.post('/signup', (req, res) => {
   });
   user.password = user.encryptPassword(body.password);
   user.save().then((user) => {
-    req.flash('success_message', 'User signed up successfully');
-    res.redirect('/admin');
+    res.send(user);
   }).catch((e) => {
-    req.flash('error_message', e.message);
-    res.redirect('/admin/signup');
+    res.status(404).send();
   });
 });
 // Perform the login
@@ -59,23 +55,17 @@ router.get('/users', userAuthenticated, (req, res) => {
   });
 });
 
-router.get('/login', (req, res) => {
-  if (req.user) {
-    res.redirect('/admin');
-  }
-  res.render('layouts/login', { layout: 'login.handlebars' });
-});
-
 // POST login
 router.post('/login', (req, res, next) => {
 
+  passport.authenticate('local', (err, user) => {
 
-  passport.authenticate('local', {
-
-    successRedirect: '/admin',
-    failureRedirect: '/admin/login',
-    failureFlash: true
-
+    if(err) return err;
+    req.logIn(user, function(err) {
+      if (err) { return err; }
+      console.log(user);
+      return res.send(user);
+    });
   })(req, res, next);
 });
 
@@ -91,7 +81,7 @@ router.post('/login', (req, res, next) => {
 //   });
 // });
 
-router.delete('/users/me/token', (req, res) => {
+router.delete('/users/me/token', userAuthenticated, (req, res) => {
   req.user.removeToken(req.token).then(() => {
     res.status(200).send();
   }).catch((e) => {
@@ -116,14 +106,14 @@ router.delete('/users/me/token', (req, res) => {
 router.get('/logout', userAuthenticated, (req, res) => {
 
   req.logOut();
-  res.redirect('/admin/login');
+  res.status(200).send();
 
 });
 
 // GET add_post
-router.get('/posts/create', userAuthenticated, (req, res) => {
-  res.render('admin/add_post');
-});
+// router.get('/posts/create', userAuthenticated, (req, res) => {
+//   res.render('admin/add_post');
+// });
 
 // posts post req
 router.post('/posts/create', (req, res) => {
@@ -154,14 +144,12 @@ router.post('/posts/create', (req, res) => {
     post.slug = slugify(body.title);
     Posts.findOne({ title: body.title }).then((some) => {
       if (some) {
-        req.flash('error_message', 'Title already exist');
-        res.redirect('/admin/posts/create');
+        req.send('Title already exist');
       }
       else {
         post.save().then((doc) => {
           console.log(doc);
-          req.flash('success_message', 'Post added');
-          res.redirect('/admin/posts');
+          req.send(doc);
         }, (e) => {
           res.status(404).send(e);
         });
@@ -174,7 +162,7 @@ router.post('/posts/create', (req, res) => {
 // posts get req
 router.get('/posts', userAuthenticated, (req, res) => {
   Posts.find({ _creatorID: req.user.id }).then((posts) => {
-    res.render('admin/list_posts', { posts });
+    res.send(posts);
   }, (e) => {
     res.status(400).send(e);
   });
