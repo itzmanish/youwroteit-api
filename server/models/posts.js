@@ -25,10 +25,18 @@ const PostSchema = mongoose.Schema({
   _creator: {
     type: String,
     required: true
+  },
+  likes: {
+    type: Number,
+    default: 0
   }
 });
 
 PostSchema.plugin(timestamps);
+
+PostSchema.methods.hitLikes = function() {
+  this.likes++;
+};
 
 var Posts = mongoose.model('Posts', PostSchema);
 

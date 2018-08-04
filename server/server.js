@@ -29,7 +29,7 @@ app.locals.moment = require("moment");
 
 app.use(BodyParser.json());
 app.use(BodyParser.urlencoded({ extended: false }));
-app.use(methodOverride('X-HTTP-Method-Override'));
+// app.use(methodOverride('X-HTTP-Method-Override'));
 const {select, currentTime} = require("./helpers/handlebars-helpers");
 // Setup views
 app.engine('.handlebars', hbs({

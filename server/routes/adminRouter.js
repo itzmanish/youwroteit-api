@@ -111,9 +111,9 @@ router.get('/logout', userAuthenticated, (req, res) => {
 });
 
 // GET add_post
-// router.get('/posts/create', userAuthenticated, (req, res) => {
-//   res.render('admin/add_post');
-// });
+router.get('/posts/create', userAuthenticated, (req, res) => {
+  res.render('admin/add_post');
+});
 
 // posts post req
 router.post('/posts/create', (req, res) => {
@@ -160,8 +160,18 @@ router.post('/posts/create', (req, res) => {
 });
 
 // posts get req
-router.get('/posts', userAuthenticated, (req, res) => {
-  Posts.find({ _creatorID: req.user.id }).then((posts) => {
+// router.get('/posts', userAuthenticated, (req, res) => {
+//   Posts.find({ _creatorID: req.user.id }).then((posts) => {
+//     res.render('admin/list_posts', {posts});
+
+//     // res.send(posts);
+//   }, (e) => {
+//     res.status(400).send(e);
+//   });
+// });
+
+router.get('/posts', (req, res) => {
+  Posts.find().then((posts) => {
     res.send(posts);
   }, (e) => {
     res.status(400).send(e);
@@ -230,6 +240,10 @@ router.post('/posts/edit/:id', userAuthenticated, (req, res) => {
   }).catch((e) => {
     res.status(404).send();
   });
+});
+
+router.post('/like', userAuthenticated, (req, res) => {
+  Posts.hitLikes();
 });
 
 
