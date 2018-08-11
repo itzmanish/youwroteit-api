@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const timestamps = require("mongoose-timestamp");
 const PostSchema = mongoose.Schema({
   title: {
     type: String,
     trim: true,
-    required: true,
+    required: true
   },
   slug: {
     type: String,
@@ -16,15 +16,14 @@ const PostSchema = mongoose.Schema({
   },
   status: {
     type: String,
-    default: 'public'
+    default: "public"
   },
   _creatorID: {
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
-  _creator: {
-    type: String,
-    required: true
+  _author: {
+    type: String
   },
   likes: {
     type: Number,
@@ -38,6 +37,18 @@ PostSchema.methods.hitLikes = function() {
   this.likes++;
 };
 
-var Posts = mongoose.model('Posts', PostSchema);
+PostSchema.methods.toJSON = function() {
+  return {
+    _id: this._id,
+    title: this.title,
+    body: this.body,
+    slug: this.slug,
+    author: this._author,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt
+  };
+};
 
-module.exports = {Posts};
+var Posts = mongoose.model("Posts", PostSchema);
+
+module.exports = { Posts };

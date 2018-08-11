@@ -1,4 +1,4 @@
-const { Users } = require('../../models/users');
+const { Users } = require("../../models/users");
 
 // var authenticate = (req, res, next) => {
 //     var token = req.session.token;
@@ -22,10 +22,10 @@ const { Users } = require('../../models/users');
 // });
 
 var userAuthenticated = function(req, res, next) {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    res.redirect('/admin/login');
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/login");
 };
 
 module.exports = { userAuthenticated };
