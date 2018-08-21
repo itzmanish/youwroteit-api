@@ -1,8 +1,9 @@
-const mongoose = require('mongoose');
-const validator = require('validator');
+const mongoose = require("mongoose");
+const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const bcrypt = require("bcryptjs");
+const CryptoJS = require("crypto-js");
 var UserSchema = mongoose.Schema({
   email: {
     type: String,
@@ -12,8 +13,9 @@ var UserSchema = mongoose.Schema({
     unique: true,
     validate: {
       validator: validator.isEmail,
-      message: '{VALUE} is not valid email'
-  }},
+      message: "{VALUE} is not valid email"
+    }
+  },
   password: {
     type: String,
     required: true,
@@ -28,122 +30,104 @@ var UserSchema = mongoose.Schema({
     type: String,
     required: true,
     minlength: 2
-  },
-  tokens: [{
-    access: {
-      type: String,
-      required: true
-    },
-    token: {
-      type: String,
-      required: true
-    }
-  }]
+  }
 });
 
-UserSchema.methods.toJSON = function () {
+UserSchema.methods.toJSON = function() {
   var user = this;
-  var userObject =user.toObject();
-  
-  return _.pick(userObject, ['_id', 'email']);
+  var userObject = user.toObject();
+
+  return _.pick(userObject, ["_id", "email"]);
 };
 
-UserSchema.methods.generateAuthToken = function () { 
+UserSchema.methods.generateAuthToken = function() {
   var user = this;
-  var access = 'auth';
-  var token = jwt.sign({_id: user._id.toHexString(), access}, 'iskenichebamhai', {expiresIn: 86400 }).toString();
-  
-  user.tokens.push({access:access, token:token});
-  console.log(user.tokens);
-  return user.save().then(() => {
-    return token;
-  });
+  var token = jwt
+    .sign({ _id: user._id.toHexString() }, "iskenichebamhai", {
+      expiresIn: 86400
+    })
+    .toString();
+  console.log(user.token);
+  user.save();
 };
 
 UserSchema.methods.removeToken = function(token) {
   var user = this;
-  
-  return user.update({
-    $pull: {
-      tokens: {token}
-    }
+  return user.delete({
+    token: null
   });
 };
 
-UserSchema.methods.encryptPassword = function (password) {
-    return bcrypt.hashSync(password, bcrypt.genSaltSync(10), null);
+UserSchema.methods.validPassword = function(password) {
+  return bcrypt.compare(password, this.password);
 };
 
-UserSchema.statics.findByToken = function (token) {
+UserSchema.statics.findByToken = function(token) {
   var User = this;
   var decoded;
   try {
-    decoded = jwt.verify(token, 'iskenichebamhai', );
+    decoded = jwt.verify(token, "iskenichebamhai");
   } catch (e) {
     return Promise.reject();
   }
-  
+
   return User.findOne({
-    '_id': decoded._id,
-    'tokens.token': token,
-    'tokens.access': 'auth'
+    _id: decoded._id,
+    token: token
   });
 };
 
-UserSchema.statics.findByCredentials = function (email, password) {
+UserSchema.statics.findByCredentials = function(email, password) {
   var User = this;
-  return User.findOne({email}).then((user) => {
-    console.log(user);
-    if(!user) {
-    return Promise.reject(); 
+  return User.findOne({ email }).then(user => {
+    if (!user) {
+      return Promise.reject();
     }
     return new Promise((resolve, reject) => {
-        bcrypt.compare(password, user.password, (err, res) => {
-          console.log(res);
-          console.log(err);
-          if(res) {
-            resolve(user);
-          }
-            reject();
-        });
+      bcrypt.compareSync(password, user.password, (err, res) => {
+        console.log(res);
+        if (res) {
+          resolve(user);
+        }
+        reject();
+      });
     });
   });
-  
 };
 
-// UserSchema.statics.authentication = function (email, password, callback) {
-//   return Users.findOne({ email })
-//     .then(function (err, user) {
-//       if (err) {
-//         return callback(err);
-//       } else if (!user) {
-//         err = new Error('User not found.');
-//         err.status = 401;
-//         return callback(err);
+// UserSchema.statics.authentication = function(email, password, callback) {
+//   return Users.findOne({ email }).then(function(err, user) {
+//     if (err) {
+//       return callback(err);
+//     } else if (!user) {
+//       err = new Error("User not found.");
+//       err.status = 401;
+//       return callback(err);
+//     }
+//     bcrypt.compare(password, user.password, function(err, result) {
+//       if (result === true) {
+//         return callback(null, user);
+//       } else {
+//         return callback();
 //       }
-//       bcrypt.compare(password, user.password, function (err, result) {
-//         if (result === true) {
-//           return callback(null, user);
-//         } else {
-//           return callback();
-//         }
-//       });
 //     });
+//   });
 // };
-// UserSchema.pre('save', function(next) {
-//   var user = this;
-//   console.log(user.isModified('password'));
-//   if(user.isModified('password')) { 
-//     bcrypt.genSalt(10, function(err, salt) {
-//       bcrypt.hash(user.password, salt, function(err, hash) {
-//         user.password = hash;
-//         next();
-//       });
-//     });
-//   } else {
-//     next();
-//   }
-// });
-var Users = mongoose.model('Users', UserSchema);
+UserSchema.pre("save", function(next) {
+  var user = this;
+  console.log(user.isModified("password"));
+  if (user.isModified("password")) {
+    bcrypt.genSalt(10, function(err, salt) {
+      bcrypt.hash(user.password, salt, function(err, hash) {
+        user.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
-module.exports = {Users};
+var Users = mongoose.model("Users", UserSchema);
+
+module.exports = { Users };

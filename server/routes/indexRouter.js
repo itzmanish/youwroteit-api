@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { Users } = require("./../models/users");
+const _ = require("lodash");
+const bcrypt = require("bcryptjs");
 const { userAuthenticated } = require("./../middleware/auth/authenticate");
 const passport = require("passport");
 require("./../lib/auth/passport");
@@ -11,7 +13,7 @@ router.all("/*", (req, res, next) => {
 });
 // Get Requests
 
-router.get("/admin", userAuthenticated, (req, res) => {
+router.get("/admin", (req, res) => {
   res.render("admin/index");
 });
 router.get("/signup", (req, res) => {
@@ -22,14 +24,14 @@ router.get("/login", (req, res) => {
   res.render("layouts/login", { layout: "login" });
 });
 
-router.get("/users/me", userAuthenticated, (req, res) => {
+router.get("/users/me", (req, res) => {
   res.send(req.user);
 });
 
-router.get("/users", userAuthenticated, (req, res) => {
+router.get("/users", (req, res) => {
   Users.find().then(
     user => {
-      res.send({ user });
+      res.json({ user });
     },
     e => {
       res.status(400).send(e);
@@ -37,56 +39,51 @@ router.get("/users", userAuthenticated, (req, res) => {
   );
 });
 
-router.get("/logout", userAuthenticated, (req, res) => {
+router.get("/logout", (req, res) => {
   req.logOut();
   res.status(200).send();
 });
 
 // Post Request
 // post users
-router.post("/signup", (req, res) => {
+router.post("/signup", async (req, res) => {
   var body = _.pick(req.body, ["firstname", "lastname", "email", "password"]);
-  var user = new Users({
+  var newUser = new Users({
     email: body.email.toLowerCase(),
     firstname: body.firstname,
     lastname: body.lastname
   });
-  user.password = user.encryptPassword(body.password);
-  user
-    .save()
-    .then(user => {
-      res.send(user);
-    })
-    .catch(e => {
-      res.status(404).send();
-    });
+  newUser.password = await bcrypt.hash(body.password, 10);
+  let user = await newUser.save();
+  try {
+    if (user) {
+      return res.json(user);
+    }
+  } catch (e) {
+    res.json(e);
+  }
 });
 
 // POST login
 router.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user) => {
-    if (err) return err;
-    req.logIn(user, function(err) {
+  passport.authenticate("local", function(err, user, info) {
+    if (err) {
+      return next(err); // will generate a 500 error
+    }
+    if (!user) {
+      return res.status(409).json(info.errMsg);
+    }
+    req.login(user, function(err) {
       if (err) {
-        return err;
+        console.error(err);
+        return next(err);
       }
-      return res.send(user);
+      return res.json(user);
     });
   })(req, res, next);
 });
 
-// router.post('/login', (req, res) => {
-//   var body = _.pick(req.body, ['email', 'password']);
-//   Users.findByCredentials(body.email, body.password).then((user) => {
-//     console.log(user);
-//     req.flash('success_message', 'Successfully logged in');
-//     res.redirect('/');
-//   }).catch((e) => {
-//     res.status(400).send();
-//   });
-// });
-
-router.delete("/:username", userAuthenticated, (req, res) => {
+router.delete("/:username", (req, res) => {
   req.user
     .removeToken(req.token)
     .then(() => {

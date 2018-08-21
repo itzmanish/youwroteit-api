@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Users = require("./users");
 const timestamps = require("mongoose-timestamp");
 const PostSchema = mongoose.Schema({
   title: {
@@ -25,10 +26,30 @@ const PostSchema = mongoose.Schema({
   _author: {
     type: String
   },
-  likes: {
-    type: Number,
-    default: 0
-  }
+  likes: [
+    {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: Users
+      }
+    }
+  ],
+  comments: [
+    {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: Users
+      },
+      text: {
+        type: String,
+        required: true
+      },
+      date: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ]
 });
 
 PostSchema.plugin(timestamps);

@@ -151,7 +151,7 @@ router.post("/edit/:id", userAuthenticated, (req, res) => {
   var body = _.pick(req.body, ["title", "status", "slug", "content"]);
   body.title = body.title.trim();
   body.slug = slugify(body.title).toLowerCase();
-  if (ObjectID.isValid(id)) {
+  if (!ObjectID.isValid(id)) {
     res.status(404).send();
   }
   Posts.findOneAndUpdate(
